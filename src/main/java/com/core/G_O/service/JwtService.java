@@ -7,8 +7,12 @@ import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.stereotype.Service;
+
+import javax.crypto.SecretKey;
 import java.security.Key;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.function.Function;
 
 @Service
@@ -20,12 +24,19 @@ public class JwtService {
         return extractClaim(token, Claims::getSubject);
     }
 
-    public String generateToken(String phoneNumberId) {
+    public String generateToken(String phoneNumberId, Long businessId, String ownerName, String email, String businessName, String phoneNumber) {
+
+        Map<String, Object> extraClaims = new HashMap<>();
+        extraClaims.put("businessId", businessId);
+        extraClaims.put("ownerName", ownerName);
+
+
         return Jwts.builder()
-                .setSubject(phoneNumberId)
-                .setIssuedAt(new Date(System.currentTimeMillis()))
-                .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60 * 24)) // 24 horas
-                .signWith(getSignInKey(), SignatureAlgorithm.HS256)
+                .claims(extraClaims)
+                .subject(phoneNumberId)
+                .issuedAt(new Date(System.currentTimeMillis()))
+                .expiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60 * 24)) // 24 horas
+                .signWith(getSignInKey())
                 .compact();
     }
 
@@ -43,7 +54,11 @@ public class JwtService {
     }
 
     public <T> T extractClaim(String token, Function<Claims, T> claimsResolver) {
-        final Claims claims = Jwts.parserBuilder().setSigningKey(getSignInKey()).build().parseClaimsJws(token).getBody();
+        final Claims claims = Jwts.parser()
+                .verifyWith((SecretKey) getSignInKey()) // Se usa verifyWith en lugar de setSigningKey
+                .build()
+                .parseSignedClaims(token)              // Se usa parseSignedClaims en lugar de parseClaimsJws
+                .getPayload();                         // Se usa getPayload() en lugar de getBody()
         return claimsResolver.apply(claims);
     }
 

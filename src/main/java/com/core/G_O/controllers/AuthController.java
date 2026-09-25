@@ -36,11 +36,10 @@ public class AuthController {
             return ResponseEntity.status(403).body("Cuenta suspendida por falta de pago");
         }
 
-        String token = jwtService.generateToken(phone);
+        String token = jwtService.generateToken(phone, business.getBusinessId(), business.getFullOwnerName(), business.getEmail(), business.getBusinessName(), business.getPhoneNumberId());
+
         return ResponseEntity.ok(Map.of(
-            "token", token,
-            "business_name", business.getBusinessName(),
-            "owner_name", business.getFullOwnerName() != null ? business.getFullOwnerName() : "Admin"
+            "token", token
         ));
     }
 
