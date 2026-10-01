@@ -24,11 +24,15 @@ public class JwtService {
         return extractClaim(token, Claims::getSubject);
     }
 
-    public String generateToken(String phoneNumberId, Long businessId, String ownerName, String email, String businessName, String phoneNumber) {
+    public String generateToken(String phoneNumberId, Long businessId, String ownerName, String email, String businessName) {
 
         Map<String, Object> extraClaims = new HashMap<>();
+        extraClaims.put("phoneNumberId", phoneNumberId);
         extraClaims.put("businessId", businessId);
         extraClaims.put("ownerName", ownerName);
+        extraClaims.put("email", email);
+        extraClaims.put("businessName", businessName);
+
 
 
         return Jwts.builder()
