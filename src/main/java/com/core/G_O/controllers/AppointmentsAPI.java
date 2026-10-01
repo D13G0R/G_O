@@ -24,7 +24,7 @@ public class AppointmentsAPI {
         this.appointmentService = appointmentService;
     }
 
-    @GetMapping("/{business_id}")
+    @GetMapping("/get/{business_id}")
     public ResponseEntity<List<Appointment>> getAppointmentByBusinessID(@PathVariable Long business_id){
 
         LOG.info("Start the process to obtain the appointments associated with the business_id: {}", business_id);
@@ -39,9 +39,13 @@ public class AppointmentsAPI {
 
     @PostMapping("/create")
     public ResponseEntity<Appointment> createAppointment(@Valid @RequestBody Appointment appointment){
+
         LOG.info("Start the process to create an appointment: {}", appointment);
+
         Appointment created = appointmentService.createAppointment(appointment);
+
         LOG.info("Ends the process to create an appointment, created: {}", created);
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
+
     }
 }

@@ -24,7 +24,7 @@ public class Appointment {
     private Long id;
 
     @Column(name = "business_id", nullable = false)
-    @NotNull(message = "El campo business_id es obligatorio")
+    @NotNull(message = "El campo businessId es obligatorio")
     private Long businessId;
 
     @Column(name = "session_id", nullable = false)

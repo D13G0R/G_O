@@ -3,7 +3,7 @@ package com.core.G_O.service;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
+
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.stereotype.Service;
@@ -32,8 +32,6 @@ public class JwtService {
         extraClaims.put("ownerName", ownerName);
         extraClaims.put("email", email);
         extraClaims.put("businessName", businessName);
-
-
 
         return Jwts.builder()
                 .claims(extraClaims)
