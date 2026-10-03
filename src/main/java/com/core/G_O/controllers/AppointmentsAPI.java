@@ -48,4 +48,16 @@ public class AppointmentsAPI {
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
 
     }
+
+    @PutMapping("/update/{id}")
+    public ResponseEntity<Appointment> updateAppointment (@PathVariable Long id, @RequestBody Appointment appointmentDetails) {
+
+        LOG.info("Start api to updated the appointment with id {}", appointmentDetails.getId());
+
+        Appointment updatedAppointment = appointmentService.updateAppointment(id, appointmentDetails);
+
+        LOG.info("The update for the appointment with the ID {} is complete", updatedAppointment.getId());
+
+        return ResponseEntity.status(HttpStatus.OK).body(updatedAppointment);
+    }
 }
