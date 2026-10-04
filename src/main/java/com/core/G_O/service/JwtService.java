@@ -37,7 +37,7 @@ public class JwtService {
                 .claims(extraClaims)
                 .subject(phoneNumberId)
                 .issuedAt(new Date(System.currentTimeMillis()))
-                .expiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60 * 24)) // 24 horas
+                .expiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60)) // 24 horas
                 .signWith(getSignInKey())
                 .compact();
     }
@@ -67,6 +67,10 @@ public class JwtService {
     private Key getSignInKey() {
         byte[] keyBytes = Decoders.BASE64.decode(SECRET_KEY);
         return Keys.hmacShaKeyFor(keyBytes);
+    }
+
+    public Long getBusinessId (String token) {
+        return extractClaim(token, claims -> claims.get("businessId", Long.class));
     }
 }
 /*Base64 es:

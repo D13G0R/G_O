@@ -2,8 +2,10 @@ package com.core.G_O.controllers;
 
 import com.core.G_O.models.Appointment;
 import com.core.G_O.service.AppointmentService;
+import com.core.G_O.service.JwtService;
 import org.slf4j.LoggerFactory;
 import org.slf4j.Logger;
+import org.springframework.boot.autoconfigure.graphql.GraphQlProperties;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -19,9 +21,11 @@ public class AppointmentsAPI {
     private static final Logger LOG = LoggerFactory.getLogger(AppointmentsAPI.class);
 
     AppointmentService appointmentService;
+    JwtService jwtService;
 
-    public AppointmentsAPI(AppointmentService appointmentService){
+    public AppointmentsAPI(AppointmentService appointmentService, JwtService jwtService){
         this.appointmentService = appointmentService;
+        this.jwtService = jwtService;
     }
 
     @GetMapping("/get/{business_id}")
@@ -59,5 +63,20 @@ public class AppointmentsAPI {
         LOG.info("The update for the appointment with the ID {} is complete", updatedAppointment.getId());
 
         return ResponseEntity.status(HttpStatus.OK).body(updatedAppointment);
+    }
+
+    @DeleteMapping("/delete/{id}")
+    public ResponseEntity<Void> deleteAppointment (@PathVariable Long id, @RequestHeader("Authorization") String header) {
+
+        LOG.info("@deleteAppointment API > Start api to delete appointment with id: [{}]", id);
+
+        String token = header.substring(7);
+
+        Long businessId = jwtService.getBusinessId(token);
+        appointmentService.deleteAppointment(id, businessId);
+
+        LOG.info("@deleteAppointment API > End api to delete appointment.");
+
+        return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
     }
 }

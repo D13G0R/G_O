@@ -2,6 +2,7 @@ package com.core.G_O.service;
 
 import com.core.G_O.models.Appointment;
 import com.core.G_O.repositories.AppointmentRepositories;
+import jakarta.transaction.Transactional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -9,6 +10,7 @@ import org.springframework.beans.BeanUtils;
 
 import java.util.IllegalFormatException;
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.Objects;
 
 
@@ -70,5 +72,24 @@ public class AppointmentService {
 
 
 
+    }
+    @Transactional
+    public void deleteAppointment (Long id, Long businessId){
+
+        if(id == null || businessId == null) {
+            throw new IllegalArgumentException("Uno de los identificadorees está nulo.");
+        }
+
+        Appointment appointment = appointmentRepositories.findByIdAndBusinessId(id, businessId)
+                .orElseThrow( ()->
+                        new NoSuchElementException("No existe una cita con esos datos"));
+
+        appointmentRepositories.delete(appointment);
+
+        appointmentRepositories.flush();
+
+        if (appointmentRepositories.existsById(id)) {
+            throw new IllegalStateException("No se pudo eliminar el registro correctamente");
+        }
     }
 }
