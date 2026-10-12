@@ -36,7 +36,7 @@ public class AuthController {
             return ResponseEntity.status(403).body("Cuenta suspendida por falta de pago");
         }
 
-        String token = jwtService.generateToken(phone, business.getBusinessId(), business.getFullOwnerName(), business.getEmail(), business.getBusinessName());
+        String token = jwtService.generateToken(phone, business.getBusinessId(), business.getOwnerName(), business.getEmail(), business.getBusinessName());
 
         return ResponseEntity.ok(Map.of(
             "token", token
@@ -54,7 +54,7 @@ public class AuthController {
         BusinessContext newBusiness = new BusinessContext();
         newBusiness.setPhoneNumberId(request.getPhoneNumberId());
         newBusiness.setBusinessName(request.getBusinessName());
-        newBusiness.setFullOwnerName(request.getOwnerName());
+        newBusiness.setOwnerName(request.getOwnerName());
         newBusiness.setEmail(request.getEmail());
 
         // 3. ENCRIPTAR la contraseña antes de guardar
