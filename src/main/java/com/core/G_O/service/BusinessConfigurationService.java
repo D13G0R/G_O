@@ -1,8 +1,8 @@
 package com.core.G_O.service;
 
 import com.core.G_O.DTO.BusinessConfigurationUpdateDTO;
-import com.core.G_O.models.BusinessContext;
-import com.core.G_O.repositories.BusinessRepository;
+import com.core.G_O.models.BusinessContextN8N;
+import com.core.G_O.repositories.BusinessContextN8NRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -13,16 +13,16 @@ import java.util.Optional;
 @Service
 public class BusinessConfigurationService {
 
-    private final BusinessRepository businessRepository;
+    private final BusinessContextN8NRepository businessContextN8NRepository;
 
-    public BusinessConfigurationService(BusinessRepository businessRepository) {
-        this.businessRepository = businessRepository;
+    public BusinessConfigurationService(BusinessContextN8NRepository businessContextN8NRepository) {
+        this.businessContextN8NRepository = businessContextN8NRepository;
     }
 
     @Transactional(readOnly = true)
     public BusinessConfigurationUpdateDTO getBusinessConfiguration(Long businessId) {
 
-        BusinessContext business = businessRepository.findById(businessId)
+        BusinessContextN8N business = businessContextN8NRepository.findById(businessId)
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND, "No existe el negocio solicitado"));
 
@@ -44,7 +44,7 @@ public class BusinessConfigurationService {
                     HttpStatus.BAD_REQUEST, "Debe enviar al menos un campo para actualizar");
         }
 
-        BusinessContext business = businessRepository.findById(businessId)
+        BusinessContextN8N business = businessContextN8NRepository.findById(businessId)
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND, "No existe el negocio solicitado"));
 
@@ -52,7 +52,7 @@ public class BusinessConfigurationService {
         // JPA persiste los cambios detectados al cerrar la transacción (dirty checking).
     }
 
-    private void validationNullBusinessConfigurationData (BusinessConfigurationUpdateDTO update, BusinessContext business) {
+    private void validationNullBusinessConfigurationData (BusinessConfigurationUpdateDTO update, BusinessContextN8N business) {
 
         if (update == null) return;
 

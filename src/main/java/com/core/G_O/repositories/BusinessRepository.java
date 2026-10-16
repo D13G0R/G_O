@@ -1,12 +1,15 @@
 package com.core.G_O.repositories;
 
-import com.core.G_O.models.BusinessContext;
+import com.core.G_O.models.Business;
+import com.core.G_O.models.User;
 import org.springframework.data.jpa.repository.JpaRepository;
+
 import java.util.Optional;
 
-public interface BusinessRepository extends JpaRepository<BusinessContext, Long> {
+public interface BusinessRepository extends JpaRepository<Business, Long> {
 
-    Optional<BusinessContext> findByPhoneNumberId(String phoneNumberId);
+    Optional<Business> findByUserOwner(User userId);
 
-    Boolean existsByPhoneNumberId(String phoneNumberId);
+    Boolean existsByBusinessName(String name);
+    Boolean existsByBusinessPhoneNumber(String phone);
 }

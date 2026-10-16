@@ -1,4 +1,4 @@
-package com.core.G_O.controllers;
+/*package com.core.G_O.controllers;
 
 import com.core.G_O.DTO.BusinessConfigurationUpdateDTO;
 import com.core.G_O.models.BusinessContext;
@@ -39,4 +39,4 @@ public class BusinessConfigurationAPI {
                 authenticatedBusiness.getBusinessId(), update);
         return ResponseEntity.noContent().build();
     }
-}
+}*/

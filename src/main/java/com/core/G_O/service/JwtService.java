@@ -24,18 +24,18 @@ public class JwtService {
         return extractClaim(token, Claims::getSubject);
     }
 
-    public String generateToken(String phoneNumberId, Long businessId, String ownerName, String email, String businessName) {
+    public String generateToken(Long id, String userName, String email, Long businessId) {
 
         Map<String, Object> extraClaims = new HashMap<>();
-        extraClaims.put("phoneNumberId", phoneNumberId);
-        extraClaims.put("businessId", businessId);
-        extraClaims.put("ownerName", ownerName);
+        extraClaims.put("user_id", id);
+        extraClaims.put("user_name", userName);
         extraClaims.put("email", email);
-        extraClaims.put("businessName", businessName);
+        extraClaims.put("business_id", businessId);
+
 
         return Jwts.builder()
                 .claims(extraClaims)
-                .subject(phoneNumberId)
+                .subject(email)
                 .issuedAt(new Date(System.currentTimeMillis()))
                 .expiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60)) // 24 horas
                 .signWith(getSignInKey())
@@ -70,7 +70,7 @@ public class JwtService {
     }
 
     public Long getBusinessId (String token) {
-        return extractClaim(token, claims -> claims.get("businessId", Long.class));
+        return extractClaim(token, claims -> claims.get("business_id", Long.class));
     }
 }
 /*Base64 es:
