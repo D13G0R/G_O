@@ -37,7 +37,7 @@ public class JwtService {
                 .claims(extraClaims)
                 .subject(email)
                 .issuedAt(new Date(System.currentTimeMillis()))
-                .expiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60)) // 24 horas
+                .expiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60)) // 1 hora
                 .signWith(getSignInKey())
                 .compact();
     }
@@ -69,8 +69,9 @@ public class JwtService {
         return Keys.hmacShaKeyFor(keyBytes);
     }
 
-    public Long getBusinessId (String token) {
-        return extractClaim(token, claims -> claims.get("business_id", Long.class));
+    public Long getBusinessId(String token) {
+        Number businessId = extractClaim(token, claims -> claims.get("business_id", Number.class));
+        return businessId == null ? null : businessId.longValue();
     }
 }
 /*Base64 es:

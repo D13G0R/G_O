@@ -53,6 +53,16 @@ public class BusinessContextN8N {
     @ManyToOne(optional = false)
     @JoinColumn(name = "business_id", nullable = false)
     private Business business;
+
+    @PrePersist
+    protected void onCreate() {
+        this.createdAt = LocalDateTime.now();
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        this.updatedAt = LocalDateTime.now();
+    }
 }
 
 

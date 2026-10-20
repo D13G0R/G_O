@@ -22,6 +22,7 @@ public class Business {
     @Column(name = "business_name", nullable = false)
     private String businessName;
 
+    @Builder.Default
     @Column(name = "active")
     private boolean isActive = true;
 

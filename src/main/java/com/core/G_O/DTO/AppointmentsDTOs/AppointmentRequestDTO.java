@@ -1,4 +1,4 @@
-package com.core.G_O.DTO;
+package com.core.G_O.DTO.AppointmentsDTOs;
 
 import jakarta.validation.constraints.*;
 import lombok.AllArgsConstructor;
@@ -43,13 +43,11 @@ public class AppointmentRequestDTO {
     @NotNull(message = "La hora de la cita es obligatoria")
     private LocalTime appointmentTime;
 
+    @NotNull(message = "El status es obligatorio")
     private String status;
 
-    // IDs en lugar de objetos completos, para que el cliente mande solo los foreign keys
+    @NotNull(message = "Debe asociar un tecnico a esta tarea")
     private Long technicianId;
-
-    @NotNull(message = "El id del negocio es obligatorio")
-    private Long businessId;
 
     private BigDecimal paid;
 }
