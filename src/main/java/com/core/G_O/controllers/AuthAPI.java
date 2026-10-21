@@ -1,6 +1,7 @@
 package com.core.G_O.controllers;
 
 import com.core.G_O.DTO.RegisterRequest;
+import com.core.G_O.Exception.AtencIAException;
 import com.core.G_O.models.Business;
 import com.core.G_O.models.User;
 import com.core.G_O.repositories.BusinessRepository;
@@ -11,8 +12,10 @@ import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.web.bind.annotation.*;
 
@@ -45,7 +48,14 @@ public class AuthAPI {
         String email = request.get("email");
         String password = request.get("password");
 
-        authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(email, password));
+        try {
+            authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(email, password));
+
+        } catch(BadCredentialsException e) {
+
+            throw new AtencIAException(HttpStatus.UNAUTHORIZED, "Credenciales incorrectas");
+
+        }
 
         User user = userRepository.findByEmail(email).orElseThrow(() -> new RuntimeException("No existe un usuario con el correo %s".formatted(email)));
 
