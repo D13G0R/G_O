@@ -33,7 +33,7 @@ public class AppointmentsAPI {
     @GetMapping("/get")
     public ResponseEntity<List<AppointmentResponseDTO>> getAppointmentByBusinessID(@RequestHeader("Authorization") String header){
 
-        LOG.info("@getAppointmentByBusinessID API > Start the process to obtain the appointments associated with the business_id");
+        LOG.info("@getAppointmentByBusinessID API > Start the process to obtain the appointments associated to business_id");
 
         String token = header.substring(7);
 
