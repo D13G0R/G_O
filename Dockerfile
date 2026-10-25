@@ -79,6 +79,10 @@ RUN adduser \
     --no-create-home \
     --uid "${UID}" \
     appuser
+
+# Directorio persistente para comprobantes de pago (se monta como volumen).
+RUN mkdir -p /data/evidence && chown -R appuser:appuser /data/evidence
+
 USER appuser
 
 # Copy the executable from the "package" stage.

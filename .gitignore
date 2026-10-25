@@ -31,3 +31,12 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### Uploaded evidence ###
+uploads/
+
+### Local secrets ###
+.env
+.env.local
+!.env.example
+db/password.txt

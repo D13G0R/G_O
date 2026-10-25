@@ -9,6 +9,7 @@ import com.core.G_O.models.Business;
 import com.core.G_O.models.Technician;
 import com.core.G_O.repositories.AppointmentRepository;
 import com.core.G_O.repositories.BusinessRepository;
+import com.core.G_O.repositories.PaymentReviewRepository;
 import com.core.G_O.repositories.TechnicianRepository;
 import com.core.G_O.utils.AppointmentMapper;
 import jakarta.transaction.Transactional;
@@ -17,6 +18,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.beans.BeanUtils;
+
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Objects;
 
@@ -29,39 +32,88 @@ public class AppointmentService {
     private final AppointmentRepository appointmentRepository;
     private final TechnicianRepository technicianRepository;
     private final BusinessRepository businessRepository;
+    private final PaymentReviewRepository paymentReviewRepository;
     private final JwtService jwtService;
 
     public AppointmentService(AppointmentRepository appointmentRepository,
                               TechnicianRepository technicianRepository,
                               BusinessRepository businessRepository,
+                              PaymentReviewRepository paymentReviewRepository,
                               JwtService jwtService){
 
         this.appointmentRepository = appointmentRepository;
         this.technicianRepository = technicianRepository;
         this.businessRepository = businessRepository;
+        this.paymentReviewRepository = paymentReviewRepository;
         this.jwtService = jwtService;
 
     }
 
-    public List<AppointmentResponseDTO> getAppointmentsByBusinessID(Long business_id){
+    public List<AppointmentResponseDTO> getAppointments(Long businessId, Long technicicanId){
 
-        LOG.info("@getAppointmentsByBusinessID SERV > Stars the service to obtain all the apointments of the business_id");
+        LOG.info("@getAppointments SERV > Stars the service to obtain all the apointments of the business_id");
 
-        List<Appointment> appointments =  appointmentRepository.findByBusinessId(business_id);
+        List<Appointment> appointments;
 
-        List<AppointmentResponseDTO> response = appointments.stream().map(AppointmentMapper::fromEntity).toList();
+        if ( technicicanId == null) {
 
-        LOG.info("@getAppointmentsByBusinessID SERV > Ends the service, The appointments obtained were {} for the business_id: {}.",
-                response, business_id);
+            appointments = appointmentRepository.findByBusinessId(businessId);
+
+        }else {
+
+            List<Appointment>  rawAppointments = appointmentRepository.findByBusinessIdAndTechnicianId(businessId, technicicanId)
+                    .orElseThrow(() -> new AtencIAException(HttpStatus.NOT_FOUND, "No tiene citas asociadas para hoy"));
+
+            appointments = rawAppointments.stream().
+                    filter(appointment -> Objects.equals(appointment.getAppointmentDate(), LocalDate.now())).toList();
+        }
+
+
+        List<AppointmentResponseDTO> response = appointments.stream()
+                .map(appointment -> AppointmentMapper.fromEntity(
+                        appointment,
+                        paymentReviewRepository.findByAppointment_Id(appointment.getId()).orElse(null)))
+                .toList();
+
+        LOG.info("@getAppointments SERV > Ends the service, The appointments obtained were {} for the business_id: {}.",
+                response, businessId);
 
         return response;
+    }
+
+    public List<AppointmentResponseDTO> getAllAppointments(Long businessId) {
+        return appointmentRepository
+                .findByBusiness_IdOrderByAppointmentDateDescAppointmentTimeDesc(businessId)
+                .stream()
+                .map(appointment -> AppointmentMapper.fromEntity(
+                        appointment,
+                        paymentReviewRepository.findByAppointment_Id(appointment.getId()).orElse(null)))
+                .toList();
+    }
+
+    public List<AppointmentResponseDTO> getMyAppointments(Long businessId, Long technicianId) {
+
+        if (technicianId == null) {
+            throw new AtencIAException(HttpStatus.FORBIDDEN, "El usuario no tiene un técnico asociado");
+        }
+
+        List<Appointment> appointments = appointmentRepository
+                .findByBusinessIdAndTechnicianId(businessId, technicianId)
+                .orElse(List.of());
+
+        return appointments.stream()
+                .map(appointment -> AppointmentMapper.fromEntity(
+                        appointment,
+                        paymentReviewRepository.findByAppointment_Id(appointment.getId()).orElse(null)))
+                .toList();
     }
 
     @Transactional
     public AppointmentResponseDTO createAppointment(AppointmentRequestDTO appointmentRequest, Long businessId){
         LOG.info("@createAppointment SERV > Starts the service to save the appointment");
 
-        Business business = businessRepository.findById(businessId).orElseThrow(() -> new AtencIAException(HttpStatus.NOT_FOUND, "No hay un negocio al cual asociar esta cita"));
+        Business business = businessRepository.findById(businessId).orElseThrow(
+                () -> new AtencIAException(HttpStatus.NOT_FOUND, "No hay un negocio al cual asociar esta cita"));
 
         Technician technician = technicianRepository.findByIdAndWorkAt(appointmentRequest.getTechnicianId(), business).orElseThrow(() -> new AtencIAException(HttpStatus.NOT_FOUND, "No existe un tecnico asociado a ese id"));
 
@@ -114,7 +166,7 @@ public class AppointmentService {
 
         if (updatedAppointment.getTechnicianId() != null) {
 
-            Technician technician = technicianRepository.findById(updatedAppointment.getTechnicianId())
+            Technician technician = technicianRepository.findByIdAndWorkAt(updatedAppointment.getTechnicianId(), business)
                     .orElseThrow(() -> new AtencIAException(HttpStatus.NOT_FOUND, "Técnico no encontrado con el id: " + updatedAppointment.getTechnicianId()));
 
             actuallyAppointment.setTechnician(technician);
@@ -125,7 +177,9 @@ public class AppointmentService {
 
         LOG.info("@updateAppointment SERV > The update for the appointment with the ID {} is complete; updated information saved.", savedAppointment.getId());
 
-        return AppointmentMapper.fromEntity(savedAppointment);
+        return AppointmentMapper.fromEntity(
+                savedAppointment,
+                paymentReviewRepository.findByAppointment_Id(savedAppointment.getId()).orElse(null));
     }
     @Transactional
     public void deleteAppointment (Long id, Long businessId){

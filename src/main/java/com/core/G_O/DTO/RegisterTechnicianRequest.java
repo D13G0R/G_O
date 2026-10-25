@@ -1,6 +1,5 @@
 package com.core.G_O.DTO;
 
-import jakarta.persistence.Column;
 import jakarta.validation.constraints.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -19,24 +18,20 @@ public class RegisterTechnicianRequest {
     private String fullName;
 
     @NotNull(message = "El numero de telefono es obligatorio")
-    @Pattern(regexp = "^[0-9]{10,15}$", message = "El numero telefonico solo debe contener numeros y tener una longitud entre 11 y 15")
+    @Pattern(regexp = "^[0-9]{10,15}$", message = "El numero telefonico solo debe contener numeros y tener una longitud entre 10 y 15")
     private String phoneNumber;
 
     @Email(message = "Debes ingresar una direccion de correo valida")
-    @NotNull(message = "La direccion de correo es obligatoria")
-    @Pattern(regexp = "^[a-zA-Z0-9._%+-]+@gmail\\.com$", message="El campo email(correo) tiene un error")
+    @NotBlank(message = "La direccion de correo es obligatoria")
     private String email;
 
-    @NotBlank(message = "El campo idCard (Numero de cedulda) no puede estar en blanco")
-    @Size(min = 6, max = 16, message = "El campo idCard (Numero de cedulda) debe tener entre 6 y 16 caracteres de longitud")
+    @NotBlank(message = "El campo idCard (Numero de cedula) no puede estar en blanco")
+    @Size(min = 6, max = 16, message = "El campo idCard (Numero de cedula) debe tener entre 6 y 16 caracteres de longitud")
     private String idCard;
 
     private String photo;
 
-    @NotNull(message = "No se está asociando un jefe a este tecnico")
-    private Long boss;
-
-    @NotNull(message = "No se está asociando un negocio a este tecnico")
-    private Long workAt;
-
+    @NotBlank(message = "La contraseña es obligatoria")
+    @Size(min = 8, max = 72, message = "La contraseña debe tener entre 8 y 72 caracteres")
+    private String password;
 }

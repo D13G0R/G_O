@@ -62,6 +62,7 @@ public class AuthService {
                 .phoneNumber(savedUser.getPhoneNumber())
                 .email(savedUser.getEmail())
                 .idCard(savedUser.getIdCard())
+                .user(savedUser)
                 .boss(savedUser)
                 .workAt(savedBusiness)
                 .build();
