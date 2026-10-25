@@ -40,6 +40,20 @@ public class AppointmentResponseDTO {
 
     private BigDecimal paid;
 
+    private String paymentStatus;
+
+    private BigDecimal paymentAmount;
+
+    private String paymentMethod;
+
+    private String paymentObservation;
+
+    private LocalDateTime paymentSubmittedAt;
+
+    private LocalDateTime paymentReviewedAt;
+
+    private Boolean hasPaymentEvidence;
+
     private LocalDateTime createdAt;
 
     private LocalDateTime updatedAt;

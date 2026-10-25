@@ -3,31 +3,47 @@ package com.core.G_O.controllers;
 import com.core.G_O.DTO.AppointmentsDTOs.AppointmentRequestDTO;
 import com.core.G_O.DTO.AppointmentsDTOs.AppointmentResponseDTO;
 import com.core.G_O.DTO.AppointmentsDTOs.AppointmentUpdateDTO;
-import com.core.G_O.models.Appointment;
+import com.core.G_O.DTO.PaymentsDTOs.PaymentReviewResponseDTO;
+import com.core.G_O.Exception.AtencIAException;
+import com.core.G_O.models.User;
 import com.core.G_O.service.AppointmentService;
+import com.core.G_O.service.BusinessContextN8nService;
 import com.core.G_O.service.JwtService;
+import com.core.G_O.service.PaymentService;
 import org.slf4j.LoggerFactory;
 import org.slf4j.Logger;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import jakarta.validation.Valid;
+import java.math.BigDecimal;
 import java.util.List;
+import java.util.Objects;
 
 @RestController
 @RequestMapping("/appointments")
-@CrossOrigin(origins = "*")
 public class AppointmentsAPI {
 
     private static final Logger LOG = LoggerFactory.getLogger(AppointmentsAPI.class);
 
     AppointmentService appointmentService;
     JwtService jwtService;
+    BusinessContextN8nService businessContextN8nService;
+    PaymentService paymentService;
 
-    public AppointmentsAPI(AppointmentService appointmentService, JwtService jwtService){
+    public AppointmentsAPI(AppointmentService appointmentService,
+                           JwtService jwtService,
+                           BusinessContextN8nService businessContextN8nService,
+                           PaymentService paymentService){
         this.appointmentService = appointmentService;
         this.jwtService = jwtService;
+        this.businessContextN8nService = businessContextN8nService;
+        this.paymentService = paymentService;
     }
 
     @GetMapping("/get")
@@ -38,7 +54,7 @@ public class AppointmentsAPI {
         String token = header.substring(7);
 
         Long businessId = jwtService.getBusinessId(token);
-        List<AppointmentResponseDTO> response = appointmentService.getAppointmentsByBusinessID(businessId);
+        List<AppointmentResponseDTO> response = appointmentService.getAppointments(businessId, null);
 
         LOG.info("@getAppointmentByBusinessID API > Ends the process to obtain the appointments associated with the business_id: {}, the appointments " +
                 "obtained were {}", businessId, response);
@@ -89,4 +105,69 @@ public class AppointmentsAPI {
 
         return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
     };
+
+    @GetMapping("/get/technician/{id}")
+    public ResponseEntity<List<AppointmentResponseDTO>> getAppointmentsAssociatedTechnicians(
+            @PathVariable(value = "id") Long technicianId,
+            @AuthenticationPrincipal User user,
+            @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = true) String authorizationHeader) {
+
+        LOG.info("@getAppointmentsAssociatedTechnicians API > Call the API to retrieve all appointments scheduled for " +
+                "today for the technician with ID {}", technicianId);
+
+        String token = authorizationHeader.substring(7);
+        Long businessId = jwtService.getBusinessId(token);
+        String role = jwtService.getRole(token);
+
+        if (!"owner".equalsIgnoreCase(role)
+                && !Objects.equals(jwtService.getTechnicianId(token), technicianId)) {
+            throw new AtencIAException(HttpStatus.FORBIDDEN,
+                    "No puedes consultar las citas de otro técnico");
+        }
+
+        List<AppointmentResponseDTO> appointments = appointmentService.getAppointments(businessId, technicianId);
+
+        LOG.info("@getAppointmentsAssociatedTechnicians API > Call the API to retrieve all appointments scheduled and confirmed for " +
+                "today for the technician with ID {} has ended, the retrieved appointments were {}", technicianId, appointments);
+
+        return ResponseEntity.status(HttpStatus.OK).body(appointments);
+    }
+
+    @GetMapping("/my")
+    public ResponseEntity<List<AppointmentResponseDTO>> getMyAppointments(
+            @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = true) String authorizationHeader) {
+
+        String token = authorizationHeader.substring(7);
+        Long businessId = jwtService.getBusinessId(token);
+        Long technicianId = jwtService.getTechnicianId(token);
+
+        LOG.info("@getMyAppointments API > Getting appointments for technician {}", technicianId);
+
+        if (technicianId == null && "owner".equalsIgnoreCase(jwtService.getRole(token))) {
+            return ResponseEntity.ok(appointmentService.getAllAppointments(businessId));
+        }
+
+        return ResponseEntity.ok(appointmentService.getMyAppointments(businessId, technicianId));
+    }
+
+    @PostMapping(value = "/{id}/payment", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<PaymentReviewResponseDTO> submitPayment(
+            @PathVariable("id") Long appointmentId,
+            @RequestParam("amount") BigDecimal amount,
+            @RequestParam("method") String method,
+            @RequestParam(value = "reference", required = false) String reference,
+            @RequestPart("evidence") MultipartFile evidence,
+            @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = true) String authorizationHeader) {
+
+        String token = authorizationHeader.substring(7);
+        Long businessId = jwtService.getBusinessId(token);
+        Long technicianId = jwtService.getTechnicianId(token);
+
+        LOG.info("@submitPayment API > Technician {} reporting payment for appointment {}", technicianId, appointmentId);
+
+        PaymentReviewResponseDTO response = paymentService.submitPayment(
+                appointmentId, businessId, technicianId, amount, method, reference, evidence);
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
 }

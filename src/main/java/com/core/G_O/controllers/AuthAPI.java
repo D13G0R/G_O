@@ -3,8 +3,10 @@ package com.core.G_O.controllers;
 import com.core.G_O.DTO.RegisterRequest;
 import com.core.G_O.Exception.AtencIAException;
 import com.core.G_O.models.Business;
+import com.core.G_O.models.Technician;
 import com.core.G_O.models.User;
 import com.core.G_O.repositories.BusinessRepository;
+import com.core.G_O.repositories.TechnicianRepository;
 import com.core.G_O.repositories.UserRepository;
 import com.core.G_O.service.AuthService;
 import com.core.G_O.service.JwtService;
@@ -33,6 +35,7 @@ public class AuthAPI {
 
     @Autowired private UserRepository userRepository;
     @Autowired private BusinessRepository businessRepository;
+    @Autowired private TechnicianRepository technicianRepository;
 
     public AuthAPI(AuthenticationManager authenticationManager,
                    JwtService jwtService, AuthService authService) {
@@ -63,13 +66,33 @@ public class AuthAPI {
             return ResponseEntity.status(403).body("Cuenta suspendida por falta de pago");
         }
 
-        Business business = businessRepository.findByUserOwner(user)
-                .orElseThrow(() -> new RuntimeException("No hay un negocio asociado a este usuario") );
+        String role = user.getRole() != null ? user.getRole().getRolName() : "owner";
 
-        String token = jwtService.generateToken(user.getId(), user.getFullName(), email, business.getId());
+        Technician technician = technicianRepository.findByUser_Id(user.getId())
+                .or(() -> technicianRepository.findByEmail(email))
+                .orElse(null);
+
+        Business business;
+
+        if ("technician".equalsIgnoreCase(role)) {
+            if (technician == null || technician.getWorkAt() == null) {
+                throw new AtencIAException(HttpStatus.FORBIDDEN, "El técnico no tiene un negocio asociado");
+            }
+            business = technician.getWorkAt();
+        } else {
+            business = businessRepository.findByUserOwner(user)
+                    .orElseThrow(() -> new AtencIAException(HttpStatus.NOT_FOUND, "No hay un negocio asociado a este usuario"));
+        }
+
+        Long technicianId = technician != null ? technician.getId() : null;
+
+        String token = jwtService.generateToken(
+                user.getId(), user.getFullName(), email, business.getId(), role, technicianId);
 
         return ResponseEntity.ok(Map.of(
-            "token", token
+            "token", token,
+            "role", role,
+            "technicianId", technicianId == null ? "" : technicianId
         ));
     }
 

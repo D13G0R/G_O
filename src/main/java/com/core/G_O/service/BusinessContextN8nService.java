@@ -25,6 +25,10 @@ public class BusinessContextN8nService {
 
     private final BusinessContextN8NRepository businessContextN8NRepository;
     private final BusinessRepository businessRepository;
+    private final JwtService jwtService;
+
+    private static final String BEARER_PREFIX = "Bearer ";
+
 
     @Transactional(readOnly = true)
     public N8nConfigurationDTO getN8nConfiguration(Long businessId) {
@@ -92,5 +96,22 @@ public class BusinessContextN8nService {
                 .systemPrompt(configuration.getSystemPrompt())
                 .maxParallelAppointments(configuration.getMaxParallelAppointments())
                 .build();
+    }
+
+    public Long resolveBusinessId(String authorizationHeader) {
+        if (authorizationHeader == null || !authorizationHeader.startsWith(BEARER_PREFIX)) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED,
+                    "Token de autorización no proporcionado");
+        }
+
+        Long businessId = jwtService.getBusinessId(
+                authorizationHeader.substring(BEARER_PREFIX.length()));
+
+        if (businessId == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED,
+                    "El token no contiene el business_id");
+        }
+
+        return businessId;
     }
 }
