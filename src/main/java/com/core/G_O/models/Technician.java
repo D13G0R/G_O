@@ -40,6 +40,10 @@ public class Technician {
     private String photo;
 
     @ManyToOne
+    @JoinColumn(name = "user_id")
+    private User user;
+
+    @ManyToOne
     @JoinColumn(name = "boss", nullable = false)
     private User boss;
 

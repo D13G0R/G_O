@@ -13,7 +13,6 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -24,21 +23,20 @@ import org.springframework.web.server.ResponseStatusException;
 
 @RestController
 @RequestMapping("/business-configuration")
-@CrossOrigin(origins = "*")
 @RequiredArgsConstructor
 public class BusinessContextN8nAPI {
 
     private static final Logger LOG = LoggerFactory.getLogger(BusinessContextN8nAPI.class);
-    private static final String BEARER_PREFIX = "Bearer ";
+
 
     private final BusinessContextN8nService businessContextN8nService;
-    private final JwtService jwtService;
+
 
     @GetMapping
     public ResponseEntity<N8nConfigurationDTO> getN8nConfiguration(
             @AuthenticationPrincipal User authenticatedUser,
             @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String authorizationHeader) {
-        Long businessId = resolveBusinessId(authorizationHeader);
+        Long businessId = businessContextN8nService.resolveBusinessId(authorizationHeader);
         LOG.info("START: GET N8n configuration request for businessId: {} (user: {})",
                 businessId, authenticatedUser.getEmail());
 
@@ -53,7 +51,7 @@ public class BusinessContextN8nAPI {
             @Valid @RequestBody N8nConfigurationUpdateDTO updateDTO,
             @AuthenticationPrincipal User authenticatedUser,
             @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String authorizationHeader) {
-        Long businessId = resolveBusinessId(authorizationHeader);
+        Long businessId = businessContextN8nService.resolveBusinessId(authorizationHeader);
         LOG.info("START: PATCH N8n configuration request for businessId: {} (user: {})",
                 businessId, authenticatedUser.getEmail());
 
@@ -63,20 +61,5 @@ public class BusinessContextN8nAPI {
         return ResponseEntity.noContent().build();
     }
 
-    private Long resolveBusinessId(String authorizationHeader) {
-        if (authorizationHeader == null || !authorizationHeader.startsWith(BEARER_PREFIX)) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED,
-                    "Token de autorización no proporcionado");
-        }
 
-        Long businessId = jwtService.getBusinessId(
-                authorizationHeader.substring(BEARER_PREFIX.length()));
-
-        if (businessId == null) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED,
-                    "El token no contiene el business_id");
-        }
-
-        return businessId;
-    }
 }
