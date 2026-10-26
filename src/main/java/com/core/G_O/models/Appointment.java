@@ -7,6 +7,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.OffsetDateTime;
 
 @Getter
 @Setter
@@ -64,6 +65,12 @@ public class Appointment {
 
     @Column(name = "paid", precision = 10, scale = 0, nullable = true)
     private BigDecimal paid;
+
+    @Column(name = "start_time")
+    private OffsetDateTime startTime;
+
+    @Column(name = "end_time")
+    private OffsetDateTime endTime;
 
     @PrePersist
     protected void onCreate() {

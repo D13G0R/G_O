@@ -3,6 +3,7 @@ package com.core.G_O.controllers;
 import com.core.G_O.DTO.AppointmentsDTOs.AppointmentRequestDTO;
 import com.core.G_O.DTO.AppointmentsDTOs.AppointmentResponseDTO;
 import com.core.G_O.DTO.AppointmentsDTOs.AppointmentUpdateDTO;
+import com.core.G_O.DTO.AppointmentsDTOs.StopwatchUpdateDTO;
 import com.core.G_O.DTO.PaymentsDTOs.PaymentReviewResponseDTO;
 import com.core.G_O.Exception.AtencIAException;
 import com.core.G_O.models.User;
@@ -148,6 +149,22 @@ public class AppointmentsAPI {
         }
 
         return ResponseEntity.ok(appointmentService.getMyAppointments(businessId, technicianId));
+    }
+
+    @PatchMapping("/{id}/stopwatch")
+    public ResponseEntity<AppointmentResponseDTO> updateStopwatch(
+            @PathVariable("id") Long appointmentId,
+            @Valid @RequestBody StopwatchUpdateDTO request,
+            @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = true) String authorizationHeader) {
+
+        LOG.info("@updateStopwatch API > Updating stopwatch for appointment {} with action {}",
+                appointmentId, request.getAction());
+
+        String token = authorizationHeader.substring(7);
+        AppointmentResponseDTO response = appointmentService.updateStopwatch(
+                appointmentId, request.getAction(), token);
+
+        return ResponseEntity.ok(response);
     }
 
     @PostMapping(value = "/{id}/payment", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)

@@ -6,6 +6,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 
 @Getter
 @Setter
@@ -57,4 +58,8 @@ public class AppointmentResponseDTO {
     private LocalDateTime createdAt;
 
     private LocalDateTime updatedAt;
+
+    private OffsetDateTime startTime;
+
+    private OffsetDateTime endTime;
 }
