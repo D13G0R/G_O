@@ -23,6 +23,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
@@ -119,6 +120,12 @@ public class PaymentService {
 
             appointment.setStatus("payment_review");
             appointment.setPaid(amount);
+
+            // 5. Cerrar el cronómetro aunque el cliente no alcance a enviar el stop.
+            if (appointment.getStartTime() != null && appointment.getEndTime() == null) {
+                appointment.setEndTime(OffsetDateTime.now());
+            }
+
             appointmentRepository.save(appointment);
 
             PaymentReview saved = paymentReviewRepository.save(review);

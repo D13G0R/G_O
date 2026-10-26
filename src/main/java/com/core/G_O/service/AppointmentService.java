@@ -20,8 +20,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.beans.BeanUtils;
 
 import java.time.LocalDate;
+import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
 
 
 @Service
@@ -137,6 +141,94 @@ public class AppointmentService {
 
         LOG.info("@createAppointment SERV > Ends the service, saved appointment: {}", saved);
         return response;
+    }
+
+    @Transactional
+    public AppointmentResponseDTO updateStopwatch(Long appointmentId, String action, String token) {
+        // 1. Verificar que el técnico autenticado sea el asignado a la cita.
+        Long businessId = jwtService.getBusinessId(token);
+        Long technicianId = jwtService.getTechnicianId(token);
+
+        if (businessId == null || technicianId == null
+                || !"technician".equalsIgnoreCase(jwtService.getRole(token))) {
+            throw new AtencIAException(HttpStatus.FORBIDDEN, "Solo el técnico asignado puede operar el cronómetro");
+        }
+
+        Appointment appointment = appointmentRepository.findByIdAndBusinessId(appointmentId, businessId)
+                .orElseThrow(() -> new AtencIAException(HttpStatus.NOT_FOUND, "No existe la cita indicada"));
+
+        if (appointment.getTechnician() == null
+                || !Objects.equals(appointment.getTechnician().getId(), technicianId)) {
+            throw new AtencIAException(HttpStatus.FORBIDDEN, "La cita no está asignada al técnico autenticado");
+        }
+
+        String normalizedAction = action == null ? "" : action.trim().toLowerCase(Locale.ROOT);
+
+        if ("start".equals(normalizedAction)) {
+            return startStopwatch(appointment);
+        }
+
+        if ("stop".equals(normalizedAction)) {
+            return stopStopwatch(appointment);
+        }
+
+        throw new AtencIAException(HttpStatus.BAD_REQUEST, "La acción debe ser start o stop");
+    }
+
+    private AppointmentResponseDTO startStopwatch(Appointment appointment) {
+        // 2. Evitar reinicios y un segundo cronómetro activo para el mismo técnico.
+        if (appointment.getStartTime() != null) {
+            if (appointment.getEndTime() == null) {
+                return toResponse(appointment);
+            }
+
+            throw new AtencIAException(HttpStatus.CONFLICT, "Este servicio ya fue finalizado");
+        }
+
+        String status = appointment.getStatus() == null
+                ? ""
+                : appointment.getStatus().trim().toLowerCase(Locale.ROOT);
+
+        if (Set.of("cancelled", "completed", "payment_review", "payment_rejected").contains(status)) {
+            throw new AtencIAException(HttpStatus.BAD_REQUEST, "Esta cita no permite iniciar el cronómetro");
+        }
+
+        Optional<Appointment> activeAppointment = appointmentRepository
+                .findFirstByBusinessIdAndTechnicianIdAndStartTimeIsNotNullAndEndTimeIsNull(
+                        appointment.getBusiness().getId(),
+                        appointment.getTechnician().getId());
+
+        if (activeAppointment.isPresent()
+                && !Objects.equals(activeAppointment.get().getId(), appointment.getId())) {
+            throw new AtencIAException(HttpStatus.CONFLICT, "Ya tienes un servicio en curso");
+        }
+
+        // 3. Guardar la hora del servidor en la base de datos.
+        appointment.setStartTime(OffsetDateTime.now());
+        appointment.setEndTime(null);
+
+        return toResponse(appointmentRepository.save(appointment));
+    }
+
+    private AppointmentResponseDTO stopStopwatch(Appointment appointment) {
+        // 4. Finalizar el servicio sin permitir reinicios posteriores.
+        if (appointment.getStartTime() == null) {
+            throw new AtencIAException(HttpStatus.BAD_REQUEST, "El cronómetro no ha sido iniciado");
+        }
+
+        if (appointment.getEndTime() != null) {
+            return toResponse(appointment);
+        }
+
+        appointment.setEndTime(OffsetDateTime.now());
+
+        return toResponse(appointmentRepository.save(appointment));
+    }
+
+    private AppointmentResponseDTO toResponse(Appointment appointment) {
+        return AppointmentMapper.fromEntity(
+                appointment,
+                paymentReviewRepository.findByAppointment_Id(appointment.getId()).orElse(null));
     }
 
     @Transactional

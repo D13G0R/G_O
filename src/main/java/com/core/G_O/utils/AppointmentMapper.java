@@ -39,6 +39,8 @@ public class AppointmentMapper {
                 .hasPaymentEvidence(paymentReview != null)
                 .createdAt(appointment.getCreatedAt())
                 .updatedAt(appointment.getUpdatedAt())
+                .startTime(appointment.getStartTime())
+                .endTime(appointment.getEndTime())
                 .build();
     }
 }

@@ -15,4 +15,7 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
 
     List<Appointment> findByBusiness_IdOrderByAppointmentDateDescAppointmentTimeDesc(Long businessId);
 
+    Optional<Appointment> findFirstByBusinessIdAndTechnicianIdAndStartTimeIsNotNullAndEndTimeIsNull(
+            Long businessId, Long technicianId);
+
 }
