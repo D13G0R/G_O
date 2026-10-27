@@ -21,31 +21,11 @@ public class Technician {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @NotBlank(message = "El campo name (Nombre) no puede estar en blanco")
-    @Size(min = 5, max = 200, message = "El campo (Nombre) debe tener entre 5 y 200 caracteres de longitud")
-    private String fullName;
-
-    @NotNull(message = "El numero de telefono es obligatorio")
-    @Pattern(regexp = "^[0-9]{10,15}$", message = "El numero telefonico solo debe contener numeros y tener una longitud entre 11 y 15")
-    private String phoneNumber;
-
-    @Column(name = "email", unique = true, nullable = false)
-    private String email;
-
-    @NotBlank(message = "El campo idCard (Numero de cedulda) no puede estar en blanco")
-    @Size(min = 6, max = 16, message = "El campo idCard (Numero de cedulda) debe tener entre 6 y 16 caracteres de longitud")
-    private String idCard;
-
-
     private String photo;
 
-    @ManyToOne
-    @JoinColumn(name = "user_id")
+    @OneToOne(optional = false)
+    @JoinColumn(name = "user_id", unique = true)
     private User user;
-
-    @ManyToOne
-    @JoinColumn(name = "boss", nullable = false)
-    private User boss;
 
     @ManyToOne(optional = false)
     @JoinColumn(name = "work_at")

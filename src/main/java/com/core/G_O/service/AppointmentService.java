@@ -149,8 +149,7 @@ public class AppointmentService {
         Long businessId = jwtService.getBusinessId(token);
         Long technicianId = jwtService.getTechnicianId(token);
 
-        if (businessId == null || technicianId == null
-                || !"technician".equalsIgnoreCase(jwtService.getRole(token))) {
+        if (businessId == null || technicianId == null) {
             throw new AtencIAException(HttpStatus.FORBIDDEN, "Solo el técnico asignado puede operar el cronómetro");
         }
 

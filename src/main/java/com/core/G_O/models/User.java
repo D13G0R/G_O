@@ -50,8 +50,10 @@ public class User implements UserDetails {
 
     @ManyToOne(optional = false)
     @JoinColumn(name = "role_id", nullable = false)
-    private Role role; //Este campo no será algo que se pida sino mas bien dependiendo de la vista del front, enviara
-    // uno u otro, actualmente la vista que se está manejando o creando es la de owner
+    private Role role;
+
+    @OneToOne (mappedBy = "user", fetch = FetchType.LAZY)
+    private Technician technician;
 
     // ==============================
     // Métodos obligatorios de UserDetails

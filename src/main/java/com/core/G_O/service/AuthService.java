@@ -55,19 +55,7 @@ public class AuthService {
                 .userOwner(savedUser)
                 .businessPhoneNumber(request.getBusinessPhoneNumber()).build();
 
-        Business savedBusiness = businessRepository.save(business);
-
-        Technician technician = Technician.builder()
-                .fullName(savedUser.getFullName())
-                .phoneNumber(savedUser.getPhoneNumber())
-                .email(savedUser.getEmail())
-                .idCard(savedUser.getIdCard())
-                .user(savedUser)
-                .boss(savedUser)
-                .workAt(savedBusiness)
-                .build();
-
-        technicianRepository.save(technician);
+        businessRepository.save(business);
 
         if(!message.isEmpty()){
             return message;

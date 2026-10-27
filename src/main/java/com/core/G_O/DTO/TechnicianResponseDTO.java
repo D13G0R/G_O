@@ -18,7 +18,6 @@ public class TechnicianResponseDTO {
     private String idCard;
     private String photo;
     private Long businessId;
-    private Long bossId;
     private Long userId;
     private boolean active;
     private LocalDateTime createdAt;
