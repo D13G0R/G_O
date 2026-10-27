@@ -68,18 +68,24 @@ public class AuthAPI {
 
         String role = user.getRole() != null ? user.getRole().getRolName() : "owner";
 
-        Technician technician = technicianRepository.findByUser_Id(user.getId())
-                .or(() -> technicianRepository.findByEmail(email))
-                .orElse(null);
+
+        Technician technician = technicianRepository.findByUser_Id(user.getId()).orElse(null);
 
         Business business;
 
         if ("technician".equalsIgnoreCase(role)) {
-            if (technician == null || technician.getWorkAt() == null) {
+
+            if (technician == null) {
+                throw new AtencIAException(HttpStatus.NOT_FOUND, "No se creo el registro de tecnico a este usuario");
+            }
+
+            if (technician.getWorkAt() == null) {
                 throw new AtencIAException(HttpStatus.FORBIDDEN, "El técnico no tiene un negocio asociado");
             }
             business = technician.getWorkAt();
+
         } else {
+            
             business = businessRepository.findByUserOwner(user)
                     .orElseThrow(() -> new AtencIAException(HttpStatus.NOT_FOUND, "No hay un negocio asociado a este usuario"));
         }

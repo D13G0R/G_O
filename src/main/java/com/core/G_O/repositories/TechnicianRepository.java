@@ -15,7 +15,4 @@ public interface TechnicianRepository extends JpaRepository<Technician, Long> {
 
     Optional<Technician> findByUser_Id(Long userId);
 
-    Optional<Technician> findByEmail(String email);
-
-    Optional<Technician> findByIdAndWorkAt_Id(Long technicianId, Long businessId);
 }

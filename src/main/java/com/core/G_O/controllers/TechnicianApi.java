@@ -9,10 +9,13 @@ import com.core.G_O.service.TechnicianService;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -37,10 +40,7 @@ public class TechnicianApi {
 
         LOG.info("@getTechnicians API > Start api to get all technicians");
 
-        if (user == null || user.getRole() == null
-                || !"owner".equalsIgnoreCase(user.getRole().getRolName())) {
-            throw new AtencIAException(HttpStatus.FORBIDDEN, "Solo el dueño puede consultar los técnicos");
-        }
+        requireOwner(user, "Solo el dueño puede consultar los técnicos");
 
         Long businessId = jwtService.getBusinessId(header.substring(7));
 
@@ -51,25 +51,49 @@ public class TechnicianApi {
         return ResponseEntity.ok(technicians);
     }
 
-    @PostMapping("/register")
+    @PostMapping(value = "/register", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<TechnicianResponseDTO> registerTechnician(
-            @Valid @RequestBody RegisterTechnicianRequest request,
+            @Valid @RequestPart("data") RegisterTechnicianRequest request,
+            @RequestPart(value = "photo", required = false) MultipartFile photo,
             @AuthenticationPrincipal User owner,
-            @RequestHeader("Authorization") String header) {
+            @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = true) String header) {
 
         LOG.info("@registerTechnician API > Start register for technician with email {}", request.getEmail());
 
-        if (owner == null || owner.getRole() == null
-                || !"owner".equalsIgnoreCase(owner.getRole().getRolName())) {
-            throw new AtencIAException(HttpStatus.FORBIDDEN, "Solo el dueño puede registrar técnicos");
-        }
+        requireOwner(owner, "Solo el dueño puede registrar técnicos");
 
         Long businessId = jwtService.getBusinessId(header.substring(7));
 
-        TechnicianResponseDTO response = technicianService.registerTechnician(request, owner, businessId);
+        TechnicianResponseDTO response = technicianService.registerTechnician(request, photo, businessId);
 
         LOG.info("@registerTechnician API > Technician {} registered", response.getId());
 
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    @PostMapping(value = "/register/self", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<TechnicianResponseDTO> registerSelf(
+            @RequestPart(value = "photo", required = false) MultipartFile photo,
+            @AuthenticationPrincipal User owner,
+            @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = true) String header) {
+
+        LOG.info("@registerTechnicianSelf API > Start self registration for owner {}", owner == null ? null : owner.getId());
+
+        requireOwner(owner, "Solo el dueño puede registrarse como técnico");
+
+        Long businessId = jwtService.getBusinessId(header.substring(7));
+
+        TechnicianResponseDTO response = technicianService.registerSelf(owner, businessId, photo);
+
+        LOG.info("@registerTechnicianSelf API > Owner technician {} registered", response.getId());
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    private void requireOwner(User user, String message) {
+        if (user == null || user.getRole() == null
+                || !"owner".equalsIgnoreCase(user.getRole().getRolName())) {
+            throw new AtencIAException(HttpStatus.FORBIDDEN, message);
+        }
     }
 }

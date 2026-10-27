@@ -17,6 +17,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -30,25 +31,26 @@ public class TechnicianService {
     private final BusinessRepository businessRepository;
     private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
+    private final TechnicianPhotoStorageService photoStorageService;
 
     public TechnicianService(TechnicianRepository technicianRepository,
                              UserRepository userRepository,
                              BusinessRepository businessRepository,
                              RoleRepository roleRepository,
-                             PasswordEncoder passwordEncoder) {
+                             PasswordEncoder passwordEncoder,
+                             TechnicianPhotoStorageService photoStorageService) {
         this.technicianRepository = technicianRepository;
         this.userRepository = userRepository;
         this.businessRepository = businessRepository;
         this.roleRepository = roleRepository;
         this.passwordEncoder = passwordEncoder;
+        this.photoStorageService = photoStorageService;
     }
 
     public List<TechnicianResponseDTO> getTechnicians(Long businessId) {
         LOG.info("@getTechnicians SERV > Start service to get all technicians with de businessID {}", businessId);
 
-        List<Technician> technicians = technicianRepository.findByWorkAt_Id(businessId).orElseThrow(
-                () -> new AtencIAException(HttpStatus.NOT_FOUND,
-                        "No hay tecnicos asociados al negocio con id " + businessId));
+        List<Technician> technicians = technicianRepository.findByWorkAt_Id(businessId).orElse(List.of());
 
         LOG.info("@getTechnicians SERV > The service to retrieve all technicians has concluded");
 
@@ -56,8 +58,66 @@ public class TechnicianService {
     }
 
     @Transactional
+    public TechnicianResponseDTO registerSelf(User owner, Long businessId, MultipartFile photo) {
+        Business business = businessRepository.findById(businessId)
+                .orElseThrow(() -> new AtencIAException(HttpStatus.NOT_FOUND, "No existe el negocio asociado"));
+
+        Technician existingTechnician = technicianRepository.findByUser_Id(owner.getId()).orElse(null);
+
+        if (existingTechnician != null
+                && existingTechnician.getWorkAt() != null
+                && !existingTechnician.getWorkAt().getId().equals(businessId)) {
+            throw new AtencIAException(HttpStatus.CONFLICT,
+                    "Tu ficha de técnico está vinculada a otro negocio");
+        }
+
+        String savedPhoto = photoStorageService.save(photo, businessId);
+
+        try {
+            if (existingTechnician != null) {
+                String previousPhoto = existingTechnician.getPhoto();
+
+                if (savedPhoto != null) {
+                    existingTechnician.setPhoto(savedPhoto);
+                }
+
+                if (existingTechnician.getWorkAt() == null) {
+                    existingTechnician.setWorkAt(business);
+                }
+
+                Technician saved = technicianRepository.save(existingTechnician);
+
+                if (savedPhoto != null) {
+                    photoStorageService.delete(previousPhoto);
+                }
+
+                LOG.info("@registerTechnicianSelf SERV > Owner technician {} updated for business {}",
+                        saved.getId(), businessId);
+
+                return toResponse(saved);
+            }
+
+            Technician technician = Technician.builder()
+                    .photo(savedPhoto)
+                    .user(owner)
+                    .workAt(business)
+                    .build();
+
+            Technician saved = technicianRepository.save(technician);
+
+            LOG.info("@registerTechnicianSelf SERV > Owner technician {} registered for business {}",
+                    saved.getId(), businessId);
+
+            return toResponse(saved);
+        } catch (RuntimeException exception) {
+            photoStorageService.delete(savedPhoto);
+            throw exception;
+        }
+    }
+
+    @Transactional
     public TechnicianResponseDTO registerTechnician(RegisterTechnicianRequest request,
-                                                    User owner,
+                                                    MultipartFile photo,
                                                     Long businessId) {
 
         Business business = businessRepository.findById(businessId)
@@ -71,77 +131,55 @@ public class TechnicianService {
             throw new AtencIAException(HttpStatus.CONFLICT, "Ya existe un usuario registrado con esa cédula");
         }
 
-        Technician existingTechnician = technicianRepository.findByEmail(request.getEmail()).orElse(null);
-
-        if (existingTechnician != null) {
-            if (existingTechnician.getUser() != null) {
-                throw new AtencIAException(HttpStatus.CONFLICT, "Ya existe un técnico registrado con ese email");
-            }
-
-            if (existingTechnician.getWorkAt() == null
-                    || !existingTechnician.getWorkAt().getId().equals(businessId)) {
-                throw new AtencIAException(HttpStatus.CONFLICT,
-                        "El técnico existe en otro negocio y no se puede vincular");
-            }
-        }
-
         Role technicianRole = roleRepository.findByRolName("technician")
                 .orElseThrow(() -> new AtencIAException(HttpStatus.INTERNAL_SERVER_ERROR,
                         "No existe el rol technician en la base de datos"));
 
-        User technicianUser = User.builder()
-                .fullName(request.getFullName())
-                .phoneNumber(request.getPhoneNumber())
-                .email(request.getEmail())
-                .idCard(request.getIdCard())
-                .password(passwordEncoder.encode(request.getPassword()))
-                .isActive(true)
-                .role(technicianRole)
-                .build();
+        String savedPhoto = photoStorageService.save(photo, businessId);
 
-        User savedUser = userRepository.save(technicianUser);
-
-        Technician technician;
-
-        if (existingTechnician != null) {
-            technician = existingTechnician;
-            technician.setUser(savedUser);
-            technician.setFullName(request.getFullName());
-            technician.setPhoneNumber(request.getPhoneNumber());
-            technician.setIdCard(request.getIdCard());
-            technician.setPhoto(request.getPhoto());
-        } else {
-            technician = Technician.builder()
+        try {
+            User technicianUser = User.builder()
                     .fullName(request.getFullName())
                     .phoneNumber(request.getPhoneNumber())
                     .email(request.getEmail())
                     .idCard(request.getIdCard())
-                    .photo(request.getPhoto())
+                    .password(passwordEncoder.encode(request.getPassword()))
+                    .isActive(true)
+                    .role(technicianRole)
+                    .build();
+
+            User savedUser = userRepository.save(technicianUser);
+
+            Technician technician = Technician.builder()
+                    .photo(savedPhoto)
                     .user(savedUser)
-                    .boss(owner)
                     .workAt(business)
                     .build();
+
+            Technician saved = technicianRepository.save(technician);
+
+            LOG.info("@registerTechnician SERV > Technician {} registered for business {}", saved.getId(), businessId);
+
+            return toResponse(saved);
+        } catch (RuntimeException exception) {
+            photoStorageService.delete(savedPhoto);
+            throw exception;
         }
-
-        Technician saved = technicianRepository.save(technician);
-
-        LOG.info("@registerTechnician SERV > Technician {} registered for business {}", saved.getId(), businessId);
-
-        return toResponse(saved);
     }
 
     public static TechnicianResponseDTO toResponse(Technician technician) {
+        User technicianUser = technician.getUser();
+
         return TechnicianResponseDTO.builder()
                 .id(technician.getId())
-                .fullName(technician.getFullName())
-                .phoneNumber(technician.getPhoneNumber())
-                .email(technician.getEmail())
-                .idCard(technician.getIdCard())
+                .fullName(technicianUser == null ? null : technicianUser.getFullName())
+                .phoneNumber(technicianUser == null ? null : technicianUser.getPhoneNumber())
+                .email(technicianUser == null ? null : technicianUser.getEmail())
+                .idCard(technicianUser == null ? null : technicianUser.getIdCard())
                 .photo(technician.getPhoto())
                 .businessId(technician.getWorkAt() == null ? null : technician.getWorkAt().getId())
-                .bossId(technician.getBoss() == null ? null : technician.getBoss().getId())
-                .userId(technician.getUser() == null ? null : technician.getUser().getId())
-                .active(technician.getUser() == null || technician.getUser().isActive())
+                .userId(technicianUser == null ? null : technicianUser.getId())
+                .active(technicianUser == null || technicianUser.isActive())
                 .createdAt(technician.getCreatedAt())
                 .updatedAt(technician.getUpdatedAt())
                 .build();

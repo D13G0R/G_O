@@ -29,8 +29,6 @@ public class RegisterTechnicianRequest {
     @Size(min = 6, max = 16, message = "El campo idCard (Numero de cedula) debe tener entre 6 y 16 caracteres de longitud")
     private String idCard;
 
-    private String photo;
-
     @NotBlank(message = "La contraseña es obligatoria")
     @Size(min = 8, max = 72, message = "La contraseña debe tener entre 8 y 72 caracteres")
     private String password;
