@@ -85,7 +85,9 @@ public class PaymentAPI {
         return ResponseEntity.ok()
                 .contentType(MediaType.parseMediaType(evidence.contentType()))
                 .header(HttpHeaders.CONTENT_DISPOSITION, "inline")
-                .header(HttpHeaders.CACHE_CONTROL, "private, max-age=300")
+                .header(HttpHeaders.CACHE_CONTROL, "no-store, no-cache, max-age=0")
+                .header(HttpHeaders.PRAGMA, "no-cache")
+                .header(HttpHeaders.EXPIRES, "0")
                 .header("X-Content-Type-Options", "nosniff")
                 .header("Referrer-Policy", "no-referrer")
                 .body(evidence.resource());
