@@ -184,11 +184,16 @@ public class AppointmentService {
             throw new AtencIAException(HttpStatus.CONFLICT, "Este servicio ya fue finalizado");
         }
 
-        String status = appointment.getStatus() == null
-                ? ""
-                : appointment.getStatus().trim().toLowerCase(Locale.ROOT);
+        String status = normalizeStatus(appointment.getStatus());
 
-        if (Set.of("cancelled", "completed", "payment_review", "payment_rejected").contains(status)) {
+        if (Set.of(
+                Appointment.CANCELLED,
+                Appointment.COMPLETED,
+                Appointment.PAYMENT_REVIEW,
+                Appointment.PAYMENT_REJECTED,
+                Appointment.PENDING_PAYMENT,
+                Appointment.IN_PROGRESS
+        ).contains(status)) {
             throw new AtencIAException(HttpStatus.BAD_REQUEST, "Esta cita no permite iniciar el cronómetro");
         }
 
@@ -205,6 +210,7 @@ public class AppointmentService {
         // 3. Guardar la hora del servidor en la base de datos.
         appointment.setStartTime(OffsetDateTime.now());
         appointment.setEndTime(null);
+        appointment.setStatus(Appointment.IN_PROGRESS);
 
         return toResponse(appointmentRepository.save(appointment));
     }
@@ -221,7 +227,23 @@ public class AppointmentService {
 
         appointment.setEndTime(OffsetDateTime.now());
 
+        String status = normalizeStatus(appointment.getStatus());
+
+        if (status.isEmpty()
+                || Set.of(
+                        Appointment.IN_PROGRESS,
+                        Appointment.SCHEDULED,
+                        Appointment.CONFIRMED,
+                        "pending"
+                ).contains(status)) {
+            appointment.setStatus(Appointment.PENDING_PAYMENT);
+        }
+
         return toResponse(appointmentRepository.save(appointment));
+    }
+
+    private String normalizeStatus(String status) {
+        return status == null ? "" : status.trim().toLowerCase(Locale.ROOT);
     }
 
     private AppointmentResponseDTO toResponse(Appointment appointment) {

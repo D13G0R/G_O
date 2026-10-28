@@ -18,6 +18,15 @@ import java.time.OffsetDateTime;
 @Table(name = "appointments")
 public class Appointment {
 
+    public static final String SCHEDULED = "scheduled";
+    public static final String CONFIRMED = "confirmed";
+    public static final String IN_PROGRESS = "in_progress";
+    public static final String PENDING_PAYMENT = "pending_payment";
+    public static final String PAYMENT_REVIEW = "payment_review";
+    public static final String PAYMENT_REJECTED = "payment_rejected";
+    public static final String COMPLETED = "completed";
+    public static final String CANCELLED = "cancelled";
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;

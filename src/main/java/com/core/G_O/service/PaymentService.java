@@ -38,6 +38,12 @@ public class PaymentService {
             PaymentReview.REJECTED
     );
 
+    private static final Set<String> PAYMENT_REPORTABLE_STATUSES = Set.of(
+            Appointment.PENDING_PAYMENT,
+            Appointment.PAYMENT_REJECTED,
+            Appointment.COMPLETED
+    );
+
     private final AppointmentRepository appointmentRepository;
     private final PaymentReviewRepository paymentReviewRepository;
     private final EvidenceStorageService evidenceStorageService;
@@ -83,11 +89,27 @@ public class PaymentService {
             throw new AtencIAException(HttpStatus.FORBIDDEN, "La cita no está asignada al técnico autenticado");
         }
 
-        if ("cancelled".equalsIgnoreCase(appointment.getStatus())) {
+        String appointmentStatus = appointment.getStatus() == null
+                ? ""
+                : appointment.getStatus().trim().toLowerCase(Locale.ROOT);
+
+        if (Appointment.CANCELLED.equals(appointmentStatus)) {
             throw new AtencIAException(HttpStatus.BAD_REQUEST, "No se puede reportar el pago de una cita cancelada");
         }
 
+        if (Appointment.PAYMENT_REVIEW.equals(appointmentStatus)) {
+            throw new AtencIAException(HttpStatus.CONFLICT, "El pago de esta cita está pendiente de validación");
+        }
+
+        if (!PAYMENT_REPORTABLE_STATUSES.contains(appointmentStatus)) {
+            throw new AtencIAException(HttpStatus.CONFLICT, "Debes detener el cronómetro antes de reportar el pago");
+        }
+
         PaymentReview review = paymentReviewRepository.findByAppointment_Id(appointmentId).orElse(null);
+
+        if (review != null && PaymentReview.PENDING.equals(review.getStatus())) {
+            throw new AtencIAException(HttpStatus.CONFLICT, "El pago de esta cita está pendiente de validación");
+        }
 
         if (review != null && PaymentReview.APPROVED.equals(review.getStatus())) {
             throw new AtencIAException(HttpStatus.CONFLICT, "El pago de esta cita ya fue aprobado");
@@ -118,7 +140,7 @@ public class PaymentService {
             review.setReviewedBy(null);
             review.setSubmittedAt(LocalDateTime.now());
 
-            appointment.setStatus("payment_review");
+            appointment.setStatus(Appointment.PAYMENT_REVIEW);
             appointment.setPaid(amount);
 
             // 5. Cerrar el cronómetro aunque el cliente no alcance a enviar el stop.
@@ -195,8 +217,8 @@ public class PaymentService {
 
         Appointment appointment = review.getAppointment();
         appointment.setStatus(PaymentReview.APPROVED.equals(normalizedStatus)
-                ? "completed"
-                : "payment_rejected");
+                ? Appointment.COMPLETED
+                : Appointment.PAYMENT_REJECTED);
         appointmentRepository.save(appointment);
 
         PaymentReview saved = paymentReviewRepository.save(review);
