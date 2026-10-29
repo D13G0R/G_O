@@ -1,4 +1,4 @@
-# AtencIA Backend — G_O
+# AtencIA Backend
 
 API REST multi-negocio para la gestión de citas, técnicos, configuración del negocio y validación de pagos con comprobantes. El backend expone autenticación stateless con JWT, aislamiento de datos por negocio, almacenamiento de evidencias en disco y notificaciones en tiempo real por WebSocket.
 
